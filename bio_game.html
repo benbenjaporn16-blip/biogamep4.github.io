@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>นักผจญภัยพิชิตอาณาจักรสิ่งมีชีวิต</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Tahoma',sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#9be15d,#00e3ae);
+    min-height:100vh;
+}
+
+.screen{
+    text-align:center;
+    padding:30px;
+}
+
+.hidden{
+    display:none;
+}
+
+h1{
+    color:#fff;
+    margin-bottom:20px;
+}
+
+.card{
+    background:white;
+    max-width:900px;
+    margin:auto;
+    padding:20px;
+    border-radius:20px;
+    box-shadow:0 5px 20px rgba(0,0,0,.2);
+}
+
+input{
+    padding:12px;
+    width:250px;
+    border-radius:10px;
+    border:1px solid #ccc;
+}
+
+button{
+    padding:12px 20px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    background:#4CAF50;
+    color:white;
+    font-size:16px;
+    margin:5px;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+#hud{
+    display:flex;
+    justify-content:space-around;
+    background:white;
+    padding:15px;
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+.map{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+}
+
+.tile{
+    background:white;
+    border-radius:15px;
+    padding:25px;
+    cursor:pointer;
+    transition:.3s;
+    border:3px solid #4CAF50;
+}
+
+.tile:hover{
+    transform:scale(1.05);
+}
+
+#questionBox{
+    margin-top:20px;
+}
+
+.answer{
+    display:block;
+    width:100%;
+    margin:10px 0;
+}
+
+.correct{
+    background:#2ecc71;
+}
+
+.wrong{
+    background:#e74c3c;
+}
+
+.result{
+    font-size:22px;
+    margin-top:20px;
+}
+</style>
+</head>
+<body>
+
+<div id="startScreen" class="screen">
+    <h1>🌿 นักผจญภัยพิชิตอาณาจักรสิ่งมีชีวิต 🐘</h1>
+
+    <div class="card">
+        <h2>กรุณาใส่ชื่อผู้เล่น</h2>
+        <br>
+        <input id="playerName" placeholder="ชื่อผู้เล่น">
+        <br><br>
+        <button onclick="startGame()">เริ่มเกม</button>
+    </div>
+</div>
+
+<div id="gameScreen" class="hidden">
+
+    <div id="hud">
+        <div>👤 <span id="player"></span></div>
+        <div>⭐ คะแนน: <span id="score">0</span></div>
+        <div>🔥 คอมโบ: <span id="combo">0</span></div>
+        <div>⏰ เวลา: <span id="time">300</span></div>
+    </div>
+
+    <div class="card">
+
+        <h2>🗺️ แผนที่ผจญภัย</h2>
+        <br>
+
+        <div class="map" id="map"></div>
+
+        <div id="questionBox" class="hidden">
+            <hr><br>
+            <h3 id="locationName"></h3>
+            <br>
+            <h2 id="question"></h2>
+            <br>
+
+            <div id="answers"></div>
+        </div>
+
+    </div>
+</div>
+
+<div id="endScreen" class="hidden screen">
+
+    <div class="card">
+
+        <h1>🏆 จบเกม</h1>
+
+        <div class="result" id="finalResult"></div>
+
+        <br>
+
+        <button onclick="location.reload()">เล่นใหม่</button>
+
+    </div>
+
+</div>
+
+<script>
+
+let score = 0;
+let combo = 0;
+let timeLeft = 300;
+let currentQuestion = null;
+
+const locations = [
+"🌳 ป่าพิศวง",
+"🌸 สวนดอกไม้วิเศษ",
+"🐘 ทุ่งสัตว์ป่า",
+"🐠 อาณาจักรใต้ทะเล",
+"🍄 ถ้ำเห็ดมหัศจรรย์",
+"🔬 โลกจุลินทรีย์",
+"🏔 ภูเขาลึกลับ",
+"🌿 ป่าดึกดำบรรพ์"
+];
+
+const questions = [
+
+{
+q:"ดอกกุหลาบจัดอยู่ในกลุ่มใด",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:0
+},
+
+{
+q:"เห็ดราอยู่ในกลุ่มใด",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:2
+},
+
+{
+q:"ช้างจัดอยู่ในกลุ่มใด",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:1
+},
+
+{
+q:"ปลาโลมาเป็น",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:1
+},
+
+{
+q:"มอสเป็น",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:0
+},
+
+{
+q:"ยีสต์เป็น",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:2
+},
+
+{
+q:"ต้นมะม่วงเป็น",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:0
+},
+
+{
+q:"เสือเป็น",
+choices:["พืช","สัตว์","ไม่ใช่พืชไม่ใช่สัตว์"],
+answer:1
+}
+
+];
+
+function startGame(){
+
+const name=document.getElementById("playerName").value;
+
+if(name===""){
+alert("กรุณากรอกชื่อ");
+return;
+}
+
+document.getElementById("player").innerText=name;
+
+document.getElementById("startScreen").classList.add("hidden");
+document.getElementById("gameScreen").classList.remove("hidden");
+
+createMap();
+
+setInterval(()=>{
+
+timeLeft--;
+
+document.getElementById("time").innerText=timeLeft;
+
+if(timeLeft<=0){
+
+endGame();
+
+}
+
+},1000);
+
+}
+
+function createMap(){
+
+const map=document.getElementById("map");
+
+locations.forEach(location=>{
+
+const tile=document.createElement("div");
+
+tile.className="tile";
+
+tile.innerHTML=location;
+
+tile.onclick=()=>openQuestion(location);
+
+map.appendChild(tile);
+
+});
+
+}
+
+function openQuestion(location){
+
+currentQuestion=
+questions[Math.floor(Math.random()*questions.length)];
+
+document.getElementById("locationName").innerText=location;
+
+document.getElementById("question").innerText=currentQuestion.q;
+
+const answerBox=document.getElementById("answers");
+
+answerBox.innerHTML="";
+
+currentQuestion.choices.forEach((choice,index)=>{
+
+const btn=document.createElement("button");
+
+btn.className="answer";
+
+btn.innerText=choice;
+
+btn.onclick=()=>checkAnswer(index);
+
+answerBox.appendChild(btn);
+
+});
+
+document.getElementById("questionBox").classList.remove("hidden");
+
+}
+
+function checkAnswer(index){
+
+if(index===currentQuestion.answer){
+
+combo++;
+
+let bonus = combo>=3 ? 5 : 0;
+
+score += 10 + bonus;
+
+alert("✅ ถูกต้อง +" + (10+bonus));
+
+}else{
+
+combo=0;
+
+alert("❌ ผิด");
+
+}
+
+document.getElementById("score").innerText=score;
+document.getElementById("combo").innerText=combo;
+
+document.getElementById("questionBox").classList.add("hidden");
+
+}
+
+function endGame(){
+
+document.getElementById("gameScreen").classList.add("hidden");
+document.getElementById("endScreen").classList.remove("hidden");
+
+let rank="นักสำรวจมือใหม่";
+
+if(score>=80) rank="นักผจญภัยผู้เชี่ยวชาญ";
+if(score>=150) rank="ปรมาจารย์แห่งสิ่งมีชีวิต";
+
+document.getElementById("finalResult").innerHTML=`
+<h2>คะแนนรวม ${score}</h2>
+<br>
+<h3>${rank}</h3>
+`;
+
+}
+
+</script>
+
+</body>
+</html>
